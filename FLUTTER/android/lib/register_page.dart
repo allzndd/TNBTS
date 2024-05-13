@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'login_page.dart';
 
 void main() {
   runApp(RegisterApp());
@@ -25,22 +26,85 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  Future<void> _register() async {
-    final response = await http.post(
-      Uri.parse('http://localhost/register.php'), // Ganti dengan URL endpoint register Anda
-      body: {
-        'username': _usernameController.text,
-        'email': _emailController.text,
-        'password': _passwordController.text,
-      },
-    );
+  Future<void> _register(BuildContext context) async {
+    // Lakukan validasi data
+    String username = _usernameController.text;
+    String email = _emailController.text;
+    String password = _passwordController.text;
 
-    if (response.statusCode == 200) {
-      // Registrasi berhasil, tambahkan penanganan sesuai kebutuhan Anda
-      print('Registration successful');
+    if (username.isEmpty || email.isEmpty || password.isEmpty) {
+      // Data tidak valid, tampilkan pesan kesalahan
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Error'),
+            content: Text('Mohon masukkan data dengan benar.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
     } else {
-      // Registrasi gagal, tambahkan penanganan kesalahan sesuai kebutuhan Anda
-      print('Registration failed');
+      // Data valid, lakukan proses registrasi
+      final response = await http.post(
+        Uri.parse(
+            'http://localhost/register.php'), // Ganti dengan URL endpoint register Anda
+        body: {
+          'username': _usernameController.text,
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Registrasi berhasil, tampilkan pesan berhasil
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Success'),
+              content: Text('Akun telah berhasil dibuat.'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                    );
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        // Registrasi gagal, tampilkan pesan error dari server
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Error'),
+              content: Text('Registrasi gagal: ${response.body}'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
     }
   }
 
@@ -49,6 +113,15 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Register'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => LoginPage()),
+            );
+          },
+        ),
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -72,7 +145,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             SizedBox(height: 24.0),
             ElevatedButton(
-              onPressed: _register,
+              onPressed: () => _register(context), // Tambahkan context
               child: Text('Register'),
             ),
           ],

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'register_page.dart';
+import 'dashboard_page.dart';
 
 void main() {
   runApp(LoginApp());
@@ -35,20 +37,44 @@ class _LoginPageState extends State<LoginPage> {
       }),
     );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['message'] == 'Login successful') {
-        // Login berhasil, lanjutkan ke dashboard atau halaman berikutnya
-        print('Login successful');
-        print('User: ${data['user']}');
-      } else {
-        // Login gagal, tampilkan pesan kesalahan
-        print('Login failed: ${data['message']}');
-      }
-    } else {
-      // Gagal terhubung ke server, tampilkan pesan kesalahan
-      print('Failed to connect to server');
-    }
+    // if (response.statusCode == 200) {
+//       final data = json.decode(response.body);
+//       if (data['message'] == 'Login successful') {
+//         // Login berhasil, lanjutkan ke dashboard atau halaman berikutnya
+//         print('Login successful');
+//         print('User: ${data['user']}');
+//         Navigator.push(
+//           context,
+//           MaterialPageRoute(builder: (context) => DashboardPage()),
+//         );
+//       } else {
+//         // Login gagal, tampilkan pesan kesalahan
+//         print('Login failed: ${data['message']}');
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(
+//             content: Text('Incorrect username/email or password. Please try again.'),
+//             duration: Duration(seconds: 3),
+//             action: SnackBarAction(
+//               label: 'OK',
+//               onPressed: () {},
+//             ),
+//           ),
+//         );
+//       }
+//     } else {
+//       // Gagal terhubung ke server, tampilkan pesan kesalahan
+//       print('Failed to connect to server');
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(
+//           content: Text('Failed to connect to the server. Please try again later.'),
+//           duration: Duration(seconds: 3),
+//           action: SnackBarAction(
+//             label: 'OK',
+//             onPressed: () {},
+//           ),
+//         ),
+//       );
+//     }
   }
 
   @override
@@ -62,11 +88,23 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Gambar/logo di bagian atas
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24.0),
+              child: Image.asset(
+                'assets/logo.png', 
+                height: 200,
+                width: 200,
+                // Sesuaikan dengan ukuran gambar/logo kamu
+              ),
+            ),
+            // TextField untuk username atau email
             TextField(
               controller: _usernameController,
               decoration: InputDecoration(labelText: 'Username or Email'),
             ),
             SizedBox(height: 12.0),
+            // TextField untuk password
             TextField(
               controller: _passwordController,
               decoration: InputDecoration(labelText: 'Password'),
@@ -81,7 +119,6 @@ class _LoginPageState extends State<LoginPage> {
             TextButton(
               onPressed: () {
                 // Navigasi ke halaman registrasi
-                print('Go to registration page');
               },
               child: Text('Register'),
             ),
