@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'register_page.dart';
 import 'dashboard_page.dart';
 
@@ -9,121 +7,169 @@ void main() {
 }
 
 class LoginApp extends StatelessWidget {
+  const LoginApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Login App',
-      home: LoginPage(),
+      theme: ThemeData(
+        primaryColor: const Color(0xFFF9C416),
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          secondary: const Color(0xFF00BFF3),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+        textTheme: const TextTheme(
+          bodyText2: TextStyle(color: Color(0xFF020306)),
+        ),
+      ),
+      home: const LoginPage(),
     );
   }
 }
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({Key? key}) : super(key: key);
+
   @override
-  _LoginPageState createState() => _LoginPageState();
+  LoginPageState createState() => LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class LoginPageState extends State<LoginPage> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  Future<void> _login() async {
-    final response = await http.post(
-      Uri.parse('http://localhost/login.php'), // Ganti dengan URL endpoint login Anda
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'username': _usernameController.text,
-        'password': _passwordController.text,
-      }),
-    );
-
-    // if (response.statusCode == 200) {
-//       final data = json.decode(response.body);
-//       if (data['message'] == 'Login successful') {
-//         // Login berhasil, lanjutkan ke dashboard atau halaman berikutnya
-//         print('Login successful');
-//         print('User: ${data['user']}');
-//         Navigator.push(
-//           context,
-//           MaterialPageRoute(builder: (context) => DashboardPage()),
-//         );
-//       } else {
-//         // Login gagal, tampilkan pesan kesalahan
-//         print('Login failed: ${data['message']}');
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//             content: Text('Incorrect username/email or password. Please try again.'),
-//             duration: Duration(seconds: 3),
-//             action: SnackBarAction(
-//               label: 'OK',
-//               onPressed: () {},
-//             ),
-//           ),
-//         );
-//       }
-//     } else {
-//       // Gagal terhubung ke server, tampilkan pesan kesalahan
-//       print('Failed to connect to server');
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(
-//           content: Text('Failed to connect to the server. Please try again later.'),
-//           duration: Duration(seconds: 3),
-//           action: SnackBarAction(
-//             label: 'OK',
-//             onPressed: () {},
-//           ),
-//         ),
-//       );
-//     }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Login'),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Gambar/logo di bagian atas
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24.0),
-              child: Image.asset(
-                'assets/logo.png', 
-                height: 200,
-                width: 200,
-                // Sesuaikan dengan ukuran gambar/logo kamu
+      body: Stack(
+        children: [
+          // Background Image
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(
+                    'assets/your_illustration.png'), // Ganti dengan path gambar Anda
+                fit: BoxFit.cover,
               ),
             ),
-            // TextField untuk username atau email
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Username or Email'),
+          ),
+          // Overlay untuk Opacity
+          Positioned.fill(
+            child: Container(
+              color: Colors.white.withOpacity(0.5),
             ),
-            SizedBox(height: 12.0),
-            // TextField untuk password
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Password'),
-              obscureText: true,
+          ),
+          // Konten
+          Center(
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8,
+              height: MediaQuery.of(context).size.height * 0.40,
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode:
+                      AutovalidateMode.onUserInteraction, // Perubahan di sini
+                  child: Container(
+                    padding: EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Elemen: TextField Username
+                        TextFormField(
+                          controller: _usernameController,
+                          decoration: InputDecoration(
+                            labelText: 'E-mail address',
+                            prefixIcon: Icon(Icons.email,
+                                color: const Color(0xFF636363)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12.0),
+                        // Elemen: TextField Password
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: Icon(Icons.lock,
+                                color: const Color(0xFF636363)),
+                          ),
+                          obscureText: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your password';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24.0),
+                        // Elemen: Button Login
+                        ElevatedButton(
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              // Navigasi ke halaman dashboard
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => DashboardPage()),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(
+                                0xFF00BFF3), // Change `primary` to `backgroundColor`
+                            foregroundColor: const Color(0xFFFFFFFF),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            elevation: 5.0,
+                            shadowColor: const Color(0xFF2E2B14),
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          ),
+                          child: const Text('Login'),
+                        ),
+                        const SizedBox(height: 12.0),
+                        // Elemen: Button Register
+                        TextButton(
+                          onPressed: () {
+                            // Navigasi ke halaman registrasi
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => RegisterPage()),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: const Color(0xFF00BFF3),
+                            foregroundColor: const Color(0xFFFFFFFF),
+                          ),
+                          child: const Text('Register'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-            SizedBox(height: 24.0),
-            ElevatedButton(
-              onPressed: _login,
-              child: Text('Login'),
-            ),
-            SizedBox(height: 12.0),
-            TextButton(
-              onPressed: () {
-                // Navigasi ke halaman registrasi
-              },
-              child: Text('Register'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
