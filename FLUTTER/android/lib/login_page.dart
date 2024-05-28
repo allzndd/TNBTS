@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'register_page.dart';
 import 'dashboard_page.dart';
 
@@ -20,7 +22,7 @@ class LoginApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFFFFFFF),
         textTheme: const TextTheme(
-          bodyText2: TextStyle(color: Color(0xFF020306)),
+          bodyMedium: TextStyle(color: Color(0xFF020306)),
         ),
       ),
       home: const LoginPage(),
@@ -40,28 +42,80 @@ class LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  Future<void> _login(BuildContext context) async {
+    String username = _usernameController.text;
+    String password = _passwordController.text;
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter your username/email and password.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      try {
+        final response = await http.post(
+          Uri.parse('http://localhost/login.php'),
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: {
+            'username': username,
+            'password': password,
+          },
+        );
+
+        final responseData = json.decode(response.body);
+
+        if (response.statusCode == 200 && responseData['message'] == 'Login successful') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(responseData['message']),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => DashboardPage()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Login failed: ${responseData['message']}'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('An error occurred during login: $e'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(
-                    'assets/your_illustration.png'), // Ganti dengan path gambar Anda
+                image: AssetImage('assets/your_illustration.png'),
                 fit: BoxFit.cover,
               ),
             ),
           ),
-          // Overlay untuk Opacity
           Positioned.fill(
             child: Container(
               color: Colors.white.withOpacity(0.5),
             ),
           ),
-          // Konten
           Center(
             child: SizedBox(
               width: MediaQuery.of(context).size.width * 0.8,
@@ -69,8 +123,7 @@ class LoginPageState extends State<LoginPage> {
               child: SingleChildScrollView(
                 child: Form(
                   key: _formKey,
-                  autovalidateMode:
-                      AutovalidateMode.onUserInteraction, // Perubahan di sini
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: Container(
                     padding: EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
@@ -87,29 +140,25 @@ class LoginPageState extends State<LoginPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Elemen: TextField Username
                         TextFormField(
                           controller: _usernameController,
                           decoration: InputDecoration(
-                            labelText: 'E-mail address',
-                            prefixIcon: Icon(Icons.email,
-                                color: const Color(0xFF636363)),
+                            labelText: 'Username or Email',
+                            prefixIcon: Icon(Icons.person, color: const Color(0xFF636363)),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter your email';
+                              return 'Please enter your username or email';
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 12.0),
-                        // Elemen: TextField Password
                         TextFormField(
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock,
-                                color: const Color(0xFF636363)),
+                            prefixIcon: Icon(Icons.lock, color: const Color(0xFF636363)),
                           ),
                           obscureText: true,
                           validator: (value) {
@@ -120,22 +169,15 @@ class LoginPageState extends State<LoginPage> {
                           },
                         ),
                         const SizedBox(height: 24.0),
-                        // Elemen: Button Login
                         ElevatedButton(
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
-                              // Navigasi ke halaman dashboard
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => DashboardPage()),
-                              );
+                              _login(context);
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(
-                                0xFF00BFF3), // Change `primary` to `backgroundColor`
-                            foregroundColor: const Color(0xFFFFFFFF),
+                            foregroundColor: const Color(0xFF00BFF3),
+                            backgroundColor: const Color(0xFFFFFFFF),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12.0),
                             ),
@@ -146,19 +188,15 @@ class LoginPageState extends State<LoginPage> {
                           child: const Text('Login'),
                         ),
                         const SizedBox(height: 12.0),
-                        // Elemen: Button Register
                         TextButton(
                           onPressed: () {
-                            // Navigasi ke halaman registrasi
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                  builder: (context) => RegisterPage()),
+                              MaterialPageRoute(builder: (context) => RegisterPage()),
                             );
                           },
                           style: TextButton.styleFrom(
-                            backgroundColor: const Color(0xFF00BFF3),
-                            foregroundColor: const Color(0xFFFFFFFF),
+                            foregroundColor: const Color(0xFF00BFF3),
                           ),
                           child: const Text('Register'),
                         ),

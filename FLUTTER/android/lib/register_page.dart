@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'login_page.dart';
 
 void main() {
@@ -27,13 +28,11 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   Future<void> _register(BuildContext context) async {
-    // Lakukan validasi data
     String username = _usernameController.text;
     String email = _emailController.text;
     String password = _passwordController.text;
 
     if (username.isEmpty || email.isEmpty || password.isEmpty) {
-      // Data tidak valid, tampilkan pesan kesalahan
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Mohon masukkan data dengan benar.'),
@@ -41,34 +40,44 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       );
     } else {
-      // Data valid, lakukan proses registrasi
-      final response = await http.post(
-        Uri.parse(
-            'http://localhost/register.php'), // Ganti dengan URL endpoint register Anda
-        body: {
-          'username': _usernameController.text,
-          'email': _emailController.text,
-          'password': _passwordController.text,
-        },
-      );
+      try {
+        final response = await http.post(
+          Uri.parse('http://localhost/register.php'),
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded', // Set header Content-Type
+          },
+          body: {
+            'username': username,
+            'email': email,
+            'password': password,
+          },
+        );
 
-      if (response.statusCode == 200) {
-        // Registrasi berhasil, tampilkan pesan berhasil
+        final responseData = json.decode(response.body);
+
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(responseData['message']),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Registrasi gagal: ${responseData['error']}'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Akun telah berhasil dibuat.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
-        );
-      } else {
-        // Registrasi gagal, tampilkan pesan error dari server
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Registrasi gagal: ${response.body}'),
+            content: Text('Terjadi kesalahan saat melakukan registrasi: $e'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -93,27 +102,23 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       body: Stack(
         children: [
-          // Background Image
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(
-                    'assets/your_illustration.png'), // Ganti dengan path gambar Anda
+                image: AssetImage('assets/your_illustration.png'),
                 fit: BoxFit.cover,
               ),
             ),
           ),
-          // Overlay untuk Opacity
           Positioned.fill(
             child: Container(
               color: Colors.white.withOpacity(0.5),
             ),
           ),
-          // Konten
           Center(
             child: SizedBox(
               width: MediaQuery.of(context).size.width * 0.8,
-              height: MediaQuery.of(context).size.height * 0.45,
+              height: MediaQuery.of(context).size.height * 0.38,
               child: Container(
                 padding: EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
@@ -131,7 +136,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Elemen: TextField Username
                       TextField(
                         controller: _usernameController,
                         decoration: InputDecoration(
@@ -140,7 +144,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                       SizedBox(height: 12.0),
-                      // Elemen: TextField Email
                       TextField(
                         controller: _emailController,
                         decoration: InputDecoration(
@@ -149,7 +152,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                       SizedBox(height: 12.0),
-                      // Elemen: TextField Password
                       TextField(
                         controller: _passwordController,
                         decoration: InputDecoration(
@@ -159,12 +161,13 @@ class _RegisterPageState extends State<RegisterPage> {
                         obscureText: true,
                       ),
                       SizedBox(height: 24.0),
-                      // Elemen: Button Register
                       ElevatedButton(
-                        onPressed: () => _register(context),
+                        onPressed: () {
+                          _register(context);
+                        },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00BFF3),
-                          foregroundColor: const Color(0xFFFFFFFF),
+                          foregroundColor: const Color(0xFF00BFF3),
+                          backgroundColor: const Color(0xFFFFFFFF),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.0),
                           ),

@@ -11,13 +11,12 @@ $connection = mysqli_connect($host, $user, $password, $database);
 
 // Cek koneksi
 if (!$connection) {
-    die('Connection failed: ' . mysqli_connect_error());
+    die(json_encode(['message' => 'Connection failed: ' . mysqli_connect_error()]));
 }
 
 // Ambil data dari permintaan POST
-$input = json_decode(file_get_contents('php://input'), true);
-$usernameOrEmail = $input['username'];
-$password = $input['password'];
+$usernameOrEmail = $_POST['username'] ?? '';
+$password = $_POST['password'] ?? '';
 
 // Query untuk mencari pengguna berdasarkan nama_pengguna atau surel
 $sql = "SELECT * FROM pengguna WHERE nama_pengguna = ? OR surel = ?";
@@ -29,12 +28,16 @@ $result = mysqli_stmt_get_result($stmt);
 if (mysqli_num_rows($result) == 1) {
     $user = mysqli_fetch_assoc($result);
     if (password_verify($password, $user['kata_sandi'])) {
-        echo json_encode(array('message' => 'Login successful', 'user' => $user));
+        // Autentikasi berhasil, simpan id_pengguna ke dalam sesi
+        session_start();
+        $_SESSION['id_pengguna'] = $user['id']; // Simpan id_pengguna dari pengguna yang berhasil masuk
+        
+        echo json_encode(['message' => 'Login successful', 'user' => $user]);
     } else {
-        echo json_encode(array('message' => 'Invalid password'));
+        echo json_encode(['message' => 'Invalid password']);
     }
 } else {
-    echo json_encode(array('message' => 'User not found'));
+    echo json_encode(['message' => 'User not found']);
 }
 
 // Tutup koneksi
