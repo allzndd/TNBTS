@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'register_page.dart';
 import 'dashboard_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(LoginApp());
@@ -43,60 +44,73 @@ class LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   Future<void> _login(BuildContext context) async {
-    String username = _usernameController.text;
-    String password = _passwordController.text;
+  String username = _usernameController.text;
+  String password = _passwordController.text;
 
-    if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter your username/email and password.'),
-          duration: Duration(seconds: 2),
-        ),
+  if (username.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Please enter your username/email and password.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  } else {
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.30/login.php'),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'username': username,
+          'password': password,
+        },
       );
-    } else {
-      try {
-        final response = await http.post(
-          Uri.parse('http://localhost/login.php'),
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: {
-            'username': username,
-            'password': password,
-          },
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200 && responseData['message'] == 'Login successful') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(responseData['message']),
+            duration: Duration(seconds: 2),
+          ),
         );
 
-        final responseData = json.decode(response.body);
+        // Periksa apakah id_pengguna tidak null sebelum menyimpan
+        if (responseData['id_pengguna'] != null) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('id_pengguna', responseData['id_pengguna']);
 
-        if (response.statusCode == 200 && responseData['message'] == 'Login successful') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(responseData['message']),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          // Print id_pengguna yang disimpan
+          print('ID Pengguna yang disimpan: ${responseData['id_pengguna']}');
+
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => DashboardPage()),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Login failed: ${responseData['message']}'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          throw Exception('id_pengguna is null');
         }
-      } catch (e) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('An error occurred during login: $e'),
+            content: Text('Login failed: ${responseData['message']}'),
             duration: Duration(seconds: 2),
           ),
         );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred during login: $e'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

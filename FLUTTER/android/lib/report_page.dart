@@ -5,6 +5,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dashboard_page.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:map_picker/map_picker.dart';
 
 class ReportPage extends StatefulWidget {
   @override
@@ -20,6 +24,114 @@ class _ReportPageState extends State<ReportPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  final mapController = MapController();
+  MapPickerController mapPickerController = MapPickerController();
+
+  List<String> provinsiList = [];
+  List<String> kabupatenList = [];
+  List<String> kecamatanList = [];
+  List<String> kelurahanList = [];
+
+  String? selectedProvinsi;
+  String? selectedKabupaten;
+  String? selectedKecamatan;
+  String? selectedKelurahan;
+
+  List<Marker> _markers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _markers.add(
+      Marker(
+        width: 30.0,
+        height: 30.0,
+        point: LatLng(-8.009560, 112.950670),
+        child: Container(
+          child: FlutterLogo(),
+        ),
+      ),
+    );
+  }
+
+  // Future<void> fetchProvinsi() async {
+  //   final response = await http
+  //       .get(Uri.parse('https://ibnux.github.io/data-indonesia/provinsi.json'));
+  //   if (response.statusCode == 200) {
+  //     final List<dynamic> data = json.decode(response.body);
+  //     setState(() {
+  //       provinsiList = data.map((e) => e['nama']).toList().cast<String>();
+  //     });
+  //   } else {
+  //     throw Exception('Failed to load provinsi');
+  //   }
+  // }
+
+  void _handleMarkerDrag(Marker marker, LatLng newPosition) {
+    setState(() {
+      _latitude = newPosition.latitude;
+      _longitude = newPosition.longitude;
+    });
+  }
+
+  void _updateLocationText() {
+    setState(() {
+      _locationController.text = 'Lat: $_latitude, Lng: $_longitude';
+    });
+  }
+
+void _pickLocation() {
+  // Tampilkan dialog konfirmasi atau lakukan aksi langsung
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Konfirmasi Pilih Lokasi'),
+        content: Text('Apakah Anda yakin ingin memilih lokasi ini?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (cameraPosition != null) {
+                double? latitude = cameraPosition!.latitude;
+                double? longitude = cameraPosition!.longitude;
+
+                if (latitude != null && longitude != null) {
+                  setState(() {
+                    _latitude = latitude;
+                    _longitude = longitude;
+                    _locationController.text = 'Lat: $_latitude, Lng: $_longitude';
+                  });
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Koordinat tidak tersedia'),
+                    backgroundColor: Colors.red,
+                  ));
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Posisi kamera tidak tersedia'),
+                  backgroundColor: Colors.red,
+                ));
+              }
+
+              Navigator.of(context).pop(); // Tutup dialog
+            },
+            style: ElevatedButton.styleFrom(
+              primary: Colors.blue, // Ubah warna tombol jika perlu
+            ),
+            child: Text('Pilih Lokasi'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
@@ -50,8 +162,16 @@ class _ReportPageState extends State<ReportPage> {
       _latitude = position.latitude;
       _longitude = position.longitude;
       _locationController.text = 'Lat: $_latitude, Lng: $_longitude';
+      cameraPosition = LatLng(_latitude!, _longitude!);
+      mapController.move(cameraPosition, cameraZoom);
     });
   }
+
+  
+
+  LatLng cameraPosition = LatLng(-8.009560, 112.950670);
+  double cameraZoom = 14.4746;
+  var textController = TextEditingController();
 
   Future<void> _pickImage() async {
     FilePickerResult? result =
@@ -64,96 +184,110 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   Future<void> _submitReport() async {
-  if (!_formKey.currentState!.validate()) {
-    return;
-  }
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-  final String description = _descriptionController.text;
-  final String disasterType = _selectedDisasterType ?? '';
-  final String status = 'menunggu';
+    final String description = _descriptionController.text;
+    final String disasterType = _selectedDisasterType ?? '';
+    final String status = 'menunggu';
 
-  final String? base64Image =
-      _imageData != null ? base64Encode(_imageData!) : null;
+    final String? base64Image =
+        _imageData != null ? base64Encode(_imageData!) : null;
 
-  // Mendapatkan nilai latitude dan longitude dari lokasi saat ini
-  String? latitude = _latitude?.toString();
-  String? longitude = _longitude?.toString();
+    // Mendapatkan nilai latitude dan longitude dari lokasi saat ini
+    String? latitude = _latitude?.toString();
+    String? longitude = _longitude?.toString();
 
-  // Batas peta
-  const double topLeftLat = -7.8880636984028945;
-  const double bottomRightLat = -8.235421235273524;
-  const double topLeftLng = 112.8124997303773;
-  const double bottomRightLng = 113.14326131375316;
+    // Batas peta
+    const double topLeftLat = -7.8880636984028945;
+    const double bottomRightLat = -8.235421235273524;
+    const double topLeftLng = 112.8124997303773;
+    const double bottomRightLng = 113.14326131375316;
 
-  // Memeriksa apakah koordinat berada dalam batas peta
-  if (_latitude != null && _longitude != null) {
-    if (_latitude! >= bottomRightLat && _latitude! <= topLeftLat &&
-        _longitude! >= topLeftLng && _longitude! <= bottomRightLng) {
-      _locationController.text = 'Lat: $_latitude, Lng: $_longitude';
+    // Memeriksa apakah koordinat berada dalam batas peta
+    if (_latitude != null && _longitude != null) {
+      if (_latitude! >= bottomRightLat &&
+          _latitude! <= topLeftLat &&
+          _longitude! >= topLeftLng &&
+          _longitude! <= bottomRightLng) {
+        _locationController.text = 'Lat: $_latitude, Lng: $_longitude';
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Koordinat berada di luar batas peta'),
+          backgroundColor: Colors.red,
+        ));
+        return;
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Koordinat berada di luar batas peta'),
+        content: Text('Koordinat tidak tersedia'),
         backgroundColor: Colors.red,
       ));
       return;
     }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Koordinat tidak tersedia'),
-      backgroundColor: Colors.red,
-    ));
-    return;
-  }
 
-  const String apiUrl = 'http://localhost/report.php';
+    const String apiUrl = 'http://192.168.1.30/report.php';
 
-  try {
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: {
-        'description': description,
-        'disasterType': disasterType,
-        'status': status,
-        'latitude': latitude ?? '',
-        'longitude': longitude ?? '',
-        'image': base64Image ?? '',
-      },
-    );
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: <String, String>{
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'description': description,
+          'disasterType': disasterType,
+          'status': status,
+          'latitude': latitude ?? '',
+          'longitude': longitude ?? '',
+          'image': base64Image ?? '',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final responseBody = response.body;
-      if (responseBody.contains('success=')) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => DashboardPage()),
-          (Route<dynamic> route) => false,
-        );
-      } else if (responseBody.contains('error=')) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Gagal mengirim laporan: ${responseBody.split('=')[1]}'),
-          backgroundColor: Colors.red,
-        ));
+      if (response.statusCode == 200) {
+        final responseBody = response.body;
+        if (responseBody.contains('success=')) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => DashboardPage()),
+            (Route<dynamic> route) => false,
+          );
+        } else if (responseBody.contains('error=')) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                Text('Gagal mengirim laporan: ${responseBody.split('=')[1]}'),
+            backgroundColor: Colors.red,
+          ));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Gagal mengirim laporan: Respons tidak dikenali'),
+            backgroundColor: Colors.red,
+          ));
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Gagal mengirim laporan: Respons tidak dikenali'),
+          content: Text('Gagal mengirim laporan: ${response.reasonPhrase}'),
           backgroundColor: Colors.red,
         ));
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Gagal mengirim laporan: ${response.reasonPhrase}'),
+        content: Text('Terjadi kesalahan: $e'),
         backgroundColor: Colors.red,
       ));
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Terjadi kesalahan: $e'),
-      backgroundColor: Colors.red,
-    ));
   }
-}
+
+  void _onMapMove(MapPosition position, bool hasGesture) {
+    if (hasGesture) {
+      setState(() {
+        cameraPosition = position.center!;
+        // textController.text = "checking ...";
+      });
+    }
+  }
+
+  
 
 //   void main() {
 //   // Koordinat yang akan diperiksa
@@ -204,7 +338,7 @@ class _ReportPageState extends State<ReportPage> {
             child: Center(
               child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.8,
-                height: MediaQuery.of(context).size.height * 0.7,
+                height: MediaQuery.of(context).size.height * 1.0,
                 child: SingleChildScrollView(
                   child: Form(
                     key: _formKey,
@@ -249,6 +383,85 @@ class _ReportPageState extends State<ReportPage> {
                             ),
                             readOnly: true,
                           ),
+                          //map diletakkan disini
+                          SizedBox(height: 16.0),
+                          Container(
+                            height: 200,
+                            child: MapPicker(
+                              iconWidget: Icon(
+                                Icons.location_on,
+                                size: 60,
+                                color: Colors.red,
+                              ),
+                              mapPickerController: mapPickerController,
+                              child: FlutterMap(
+                                mapController: mapController,
+                                options: MapOptions(
+                                  initialCenter: cameraPosition,
+                                  initialZoom: cameraZoom,
+                                  onPositionChanged:
+                                      (MapPosition position, bool hasGesture) {
+                                    if (hasGesture) {
+                                      mapPickerController.mapMoving!();
+                                      textController.text = "checking ...";
+                                      setState(() {
+                                        cameraPosition = position.center!;
+                                        cameraZoom = position.zoom!;
+                                      });
+                                    }
+                                  },
+                                  // onMapReady: () async {
+                                  //   // Notify map is ready
+                                  //   List<Placemark> placemarks =
+                                  //       await placemarkFromCoordinates(
+                                  //     cameraPosition.latitude,
+                                  //     cameraPosition.longitude,
+                                  //   );
+
+                                  //   // Update the UI with the address
+                                  //   textController.text =
+                                  //       '${placemarks.first.name}, ${placemarks.first.administrativeArea}, ${placemarks.first.country}';
+                                  // },
+                                ),
+                                children: [
+                                  openStreetMapTileLayer,
+                                  // MarkerLayer(
+                                  //   markers: [
+                                  //     Marker(
+                                  //       width: 80.0,
+                                  //       height: 80.0,
+                                  //       point: cameraPosition,
+                                  //       child: Icon(
+                                  //         Icons.location_on,
+                                  //         size: 60,
+                                  //         color: Colors.red,
+                                  //       ),
+                                  //     ),
+                                  //   ],
+                                  // ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 16.0),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _pickLocation(); // Panggil fungsi untuk memilih lokasi
+                            },
+                            icon: Icon(Icons.map, color: Colors.black),
+                            label: Text(
+                              'Pilih Lokasi',
+                              style:
+                                  TextStyle(fontSize: 16.0, color: Colors.black),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              elevation: 5.0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.0),
+                              ),
+                            ),
+                          ),
+
                           SizedBox(height: 16.0),
                           TextFormField(
                             controller: _descriptionController,
@@ -456,3 +669,8 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 }
+
+TileLayer get openStreetMapTileLayer => TileLayer(
+      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      userAgentPackageName: 'dev.fleaflet.flutter_map.example',
+    );

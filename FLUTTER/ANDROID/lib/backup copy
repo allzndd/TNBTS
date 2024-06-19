@@ -38,7 +38,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       final response = await http.get(
-        Uri.parse('http://192.168.1.30/profil.php?id=$userId'),
+        Uri.parse('http://localhost/profil.php?id=$userId'),
       );
 
       // Print respons body untuk debug
@@ -69,7 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final userId = await getUserIdFromSession();
 
   final response = await http.post(
-    Uri.parse('http://10.10.183.32/profil.php'),
+    Uri.parse('http://localhost/profil.php'),
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded', // Atur content type di sini
     },

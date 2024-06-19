@@ -42,7 +42,7 @@ class _RegisterPageState extends State<RegisterPage> {
     } else {
       try {
         final response = await http.post(
-          Uri.parse('http://localhost/register.php'),
+          Uri.parse('http://192.168.1.30/register.php'),
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded', // Set header Content-Type
           },

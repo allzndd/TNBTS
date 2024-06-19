@@ -18,7 +18,7 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> fetchHistoryData() async {
-    final response = await http.get(Uri.parse('http://localhost/history.php'));
+    final response = await http.get(Uri.parse('http://192.168.1.30/history.php'));
     if (response.statusCode == 200) {
       setState(() {
         historyData = json.decode(response.body);
